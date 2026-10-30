@@ -27,7 +27,7 @@ local closestEnemy = nil -- has a closest enemy variable set so the rendersteppe
 local shiftLockConnection = nil --The connection to the renderstepped event
 local weaponLockConnection = nil
 
-local function removeWeaponLock()
+local function clearWeaponLock()
 	if weaponLockConnection then
 		weaponLockConnection:Disconnect()
 		weaponLockConnection = nil
@@ -37,7 +37,7 @@ local function removeWeaponLock()
 	print("weapon lock removed")
 end
 
-local function removeShiftLock()
+local function clearShiftLock()
 	if shiftLockConnection then
 		shiftLockConnection:Disconnect()
 		shiftLockConnection = nil
@@ -56,10 +56,10 @@ userInputService.InputBegan:Connect(function(input, gameProcessedEvent) -- Check
 			print("Shift pressed fired")
 			MeleeCombatEvent:FireServer("ClosestEnemy")
 		else
-			removeShiftLock()
+			clearShiftLock()
 			closestEnemy = nil
 			
-			if autoLockOn.Visible == true then --gui gets handled
+			if autoLockOn.Visible == true then
 				autoLockOn.Visible = false
 				autoLockOff.Visible = true
 			end
@@ -80,23 +80,27 @@ end)
 
 MeleeCombatEvent.OnClientEvent:Connect(function(enemy)
 	
-	closestEnemy = enemy
 	
-	if not closestEnemy then 
-		removeWeaponLock()
+	if not enemy then 
+		clearWeaponLock()
 		shiftPressed = false
 		print("No enemy found")
 		return
+	end
+	
+	--Used DeMorgan's law to get this
+	if not weaponLock or not shiftPressed then
+		closestEnemy = enemy
 	end
 	
 	rootPart.CFrame = CFrame.new(rootPart.Position, closestEnemy.HumanoidRootPart.Position) 
 
 	
 	if shiftPressed then -- if the shift key was pressed, stop, otherwise, it will stay locked on
-		removeShiftLock()
+		clearShiftLock()
 		print("new shift lock connection started")
 		
-		if autoLockOn.Visible == false then -- gui gets handled
+		if autoLockOn.Visible == false then
 			autoLockOff.Visible = false
 			autoLockOn.Visible = true
 		end
@@ -109,7 +113,7 @@ MeleeCombatEvent.OnClientEvent:Connect(function(enemy)
 	end
 		
 	if weaponLock then
-		removeWeaponLock()
+		clearWeaponLock()
 		weaponLock = true
 		print("New weapon lock connection started")
 		weaponLockConnection = RunService.RenderStepped:Connect(function() -- Saves the renderstopped in a connection so it can be deactivated later
@@ -120,10 +124,11 @@ MeleeCombatEvent.OnClientEvent:Connect(function(enemy)
 			-- 1 = exact, 0 = 90 degrees away, -1 = opposite direction
 
 			if dot >= 0.998 then
-				removeWeaponLock()
+				clearWeaponLock()
 			end
 		end)
 	end
 	
 end)
+
 
